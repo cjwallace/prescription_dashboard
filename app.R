@@ -14,7 +14,7 @@ data$Date <- as.Date(paste(data$Date,"-01",sep=""))
 drugs <- as.vector((unique(data$BNF.Description)))
 drugs <- c("None",drugs)
 
-#prac_data <- read.csv("")
+prac_data <- read.csv("practice_summary.csv",header=TRUE)
 
 # Define UI
 
@@ -44,7 +44,7 @@ ui <- dashboardPage(
             # Plots
             tabItem(tabName = "plots",
                 fluidRow(
-                    titlePanel("Presciptions Plot"),
+                    titlePanel("Prescriptions Plot"),
                     box(p("Please select up to four drugs to plot the usage of."),
                         width = 12),
                     box(selectInput("drug1", "Drug 1", choices = drugs),
@@ -71,21 +71,23 @@ ui <- dashboardPage(
                                 "of the item prescribed divided by Volume, in pounds sterling",
                                 "and fractions thereof.")),
                         width = 3
-                        )
+                    )
                 )
-            )
+            ),
 
             # Practice graph
-            # tabItem(tabName = "practices",
-                # fluidRow(
-                    # titlePanel("Practice Summary Plot"),
-                    # box(ggvisOutput("practices_plot"), width = 8),
-                    # box(p(paste("Here is a plot of all practices (nationally)",
-                                # "showing their total prescription volume (number of",
-                                # "items) vs. the total cost of those items in in",
-                                # "December 2014.")))
-                        # )
-            # )
+            tabItem(tabName = "practices",
+                fluidRow(
+                    titlePanel("Practice Summary Plot"),
+                    box(ggvisOutput("practices_plot"), width = 9),
+                    box(p(paste("Here is a plot of all practices (nationally)",
+                                "showing their total prescription volume (number of",
+                                "items) vs. the total cost of those items in",
+                                "December 2014.")),
+                        width = 3
+                    )
+                )
+            )
         )
     )
 )
@@ -135,32 +137,30 @@ server <- function(input, output) {
                                                                 "Volume",
                                                                 "Average Cost")))
 
-        # vis2 <- reactive({
-
-                # all_values <- function(x) {
-                #   if(is.null(x)) return(NULL)
-                #   row <- summary_df[summary_df$id == x$id, ]
-                #   row$Practice_Code
-                #   #paste0(names(row), ": ", format(row), collapse = "<br />")
-                # }
+    vis2 <- reactive({
+                # Helper function
+                pcode <- function(x) {
+                  if(is.null(x)) return(NULL)
+                  row <- prac_data[prac_data$ID == x$ID, ]
+                  row$Practice.Code
+                  #paste0(names(row), ": ", format(row), collapse = "<br />")
+                }
                
-                # prac_data %>%
-                #   ggvis(~items,~cost) %>%
-                #   layer_points(opacity := 0.45, fill = ~factor(pca_cluster)) %>%
-                #   layer_model_predictions(model = "lm") %>%
-                #   layer_ribbons(data= new_data, x = ~fit_items, y = ~fit_lower, y2 = ~fit_upper, opacity := 0.5)
-
-
-                # add_axis("x",
-                         # properties=axis_props(labels=list(angle=45)),
-                         # title = "Date",
-                         # title_offset = 50) %>%
-                # add_axis("y",
-                         # title = "Volume",
-                         # title_offset = 75) %>%
-                # add_legend("stroke", title = "Drug")
-                # })
-    # vis2 %>%  bind_shiny("practices_plot")
+                prac_data %>%
+                    ggvis(~Volume,~Cost) %>%
+                    layer_points(opacity := 0.45, fill = ~factor(Cluster), key := ~ID) %>%
+                    add_tooltip(pcode,"hover") %>%
+                    layer_model_predictions(model = "lm") %>%
+                    add_axis("x",
+                             #properties=axis_props(labels=list(angle=45)),
+                             title = "Volume",
+                             title_offset = 50) %>%
+                    add_axis("y",
+                             title = "Cost (pounds)",
+                             title_offset = 75) %>%
+                    add_legend("fill", title = "Outlier")
+                })
+    vis2 %>%  bind_shiny("practices_plot")
 
 }
 
