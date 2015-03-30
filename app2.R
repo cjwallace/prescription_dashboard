@@ -55,7 +55,8 @@ ui <- dashboardPage(
                                      width = 3),
                     box(selectInput("drug4", "Drug 4", choices = drugs),
                                      width = 3),
-                    box(ggvisOutput("ggvis_plot"), width = 12)
+                    box(ggvisOutput("ggvis_plot"), width = 12),
+                    box(ggvisOutput("ggvis_plot_2"), width = 12)
                 )
             ),
 
@@ -130,6 +131,29 @@ server <- function(input, output) {
                 })
     vis1 %>%  bind_shiny("ggvis_plot")
 
+    vis2 <- reactive({
+                data %>%
+                filter(BNF.Description == input$drug1 |
+                       BNF.Description == input$drug2 |
+                       BNF.Description == input$drug3 |
+                       BNF.Description == input$drug4) %>%
+                ggvis(~Date, ~Average.Cost, stroke = ~factor(BNF.Description)) %>%
+                group_by(BNF.Description) %>%
+                layer_paths() %>%
+                add_axis("x",
+                         properties=axis_props(title=list(fontSize = 18)),
+                         title = "Date",
+                         title_offset = 50) %>%
+                add_axis("y",
+                         properties=axis_props(title=list(fontSize = 18)),
+                         title = "Average Cost",
+                         title_offset = 75) %>%
+                add_legend("stroke", title = "Drug",
+                           properties=legend_props(title=list(fontSize = 18)),
+                          )
+                })
+    vis2 %>%  bind_shiny("ggvis_plot_2")
+
     # Render data table
     output$table <- renderDataTable(data,
                                     options = list(pageLength = 5,
@@ -140,7 +164,7 @@ server <- function(input, output) {
                                                                 "Volume",
                                                                 "Average Cost")))
 
-    vis2 <- reactive({
+    vis3 <- reactive({
                 # Helper function
                 pcode <- function(x) {
                   if(is.null(x)) return(NULL)
@@ -168,7 +192,7 @@ server <- function(input, output) {
                                #values = c("Outlier","Central")
                                 )
                 })
-    vis2 %>%  bind_shiny("practices_plot")
+    vis3 %>%  bind_shiny("practices_plot")
 
 }
 
